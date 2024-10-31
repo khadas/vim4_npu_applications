@@ -41,10 +41,12 @@ struct option longopts[] = {
 	{ "width",          required_argument,  NULL,   'w' },
 	{ "height",         required_argument,  NULL,   'h' },
 	{ "help",           no_argument,        NULL,   'H' },
+	{ "type", 			required_argument,  NULL,   't' },
 	{ 0, 0, 0, 0 }
 };
 
-int device = 0;
+int device = 255;
+char *device_type = NULL;
 
 nn_input inData;
 
@@ -122,7 +124,7 @@ int run_network(void *qcontext) {
 	int baseline;
 
 	cv::namedWindow("Image Window");
-	
+
 	int input_size = 0;
 	int hw = input_width*input_high;
 	unsigned char *rawdata = NULL;
@@ -131,11 +133,18 @@ int run_network(void *qcontext) {
 	inData.input_type = BINARY_RAW_DATA;
 	inData.input_index = 0;
 	inData.size = input_width * input_high * input_channel * sizeof(float);
-	
-	cv::VideoCapture cap(device);
+
+	cv::VideoCapture cap;
+	if (strcmp(device_type, "mipi") == 0) {
+		std::string pipeline = "v4l2src device=/dev/media0 io-mode=dmabuf ! queue ! video/x-raw,format=YUY2,framerate=30/1 ! queue ! videoconvert ! appsink";
+		cap.open(pipeline, cv::CAP_GSTREAMER);
+	} else {
+		cap.open(device);
+	}
+
 	cap.set(cv::CAP_PROP_FRAME_WIDTH, default_width);
 	cap.set(cv::CAP_PROP_FRAME_HEIGHT, default_height);
-	
+
 	gettimeofday(&time_start, 0);
 
 	if (!cap.isOpened()) {
@@ -143,34 +152,39 @@ int run_network(void *qcontext) {
 		cap.release();
 		exit(-1);
 	}
-	
+
+	cv::namedWindow("Image Window");
+	cv::setWindowProperty("Image Window", cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
+
 	while(1) {
 		gettimeofday(&time_start, 0);
 		if (!cap.read(img)) {
 			std::cout<<"Capture read error"<<std::endl;
 			break;
 		}
-		
+
 		cv::cvtColor(img, temp_img, cv::COLOR_BGR2RGB);
 		cv::resize(temp_img, temp_img, cv::Size(MODEL_WIDTH, MODEL_HEIGHT));
 		temp_img.convertTo(normalized_img, CV_32FC3, 1.0 / 255.0);
-		
-		rawdata = normalized_img.data;
-		inData.input = rawdata;
-		
+
+		inData.input = normalized_img.data;
+		inData.input_type = BINARY_RAW_DATA;
+		inData.input_index = 0;
+		inData.size = MODEL_WIDTH * MODEL_HEIGHT * 3 * sizeof(float); // Assuming 3 channels
+
 		ret = aml_module_input_set(qcontext, &inData);
 		if (ret != 0) {
 			printf("set_input fail.\n");
 			return -1;
 		}
-		
+
 		face_detect_out_t retinaface_detect_out;
 		outdata = (nn_output*)aml_module_output_get(qcontext, outconfig);
 		if (outdata == NULL) {
 			printf("aml_module_output_get error\n");
 			return -1;
 		}
-		
+
 		gettimeofday(&time_end, 0);
 		++frames;
 		total_time += (float)((time_end.tv_sec - time_start.tv_sec) + (time_end.tv_usec - time_start.tv_usec) / 1000.0f / 1000.0f);
@@ -180,14 +194,14 @@ int run_network(void *qcontext) {
 			frames = 0;
 			total_time = 0;
 		}
-	
+
 		postprocess_retinaface(outdata, &retinaface_detect_out);
 		printf("face_num:%d\n", retinaface_detect_out.detNum);
-		
+
 		for (int i =0;i < retinaface_detect_out.detNum;i++){
 			classid = (int)retinaface_detect_out.pBox[i].objectClass;
 			prob = retinaface_detect_out.pBox[i].score;
-        
+
 			left  = (retinaface_detect_out.pBox[i].x - retinaface_detect_out.pBox[i].w/2.) * img.cols;
 			right = (retinaface_detect_out.pBox[i].x + retinaface_detect_out.pBox[i].w/2.) * img.cols;
 			top   = (retinaface_detect_out.pBox[i].y - retinaface_detect_out.pBox[i].h/2.) * img.rows;
@@ -202,13 +216,13 @@ int run_network(void *qcontext) {
 			pt2=cv::Point(right, bot);
 			cv::Rect rect(left, top, right-left, bot-top);
 			cv::rectangle(img, rect, obj_id_to_color(classid), 1, 8, 0);
-		
+
 			cv::Point point1(retinaface_detect_out.point_1[i].x * img.cols, retinaface_detect_out.point_1[i].y * img.rows);
 			cv::Point point2(retinaface_detect_out.point_2[i].x * img.cols, retinaface_detect_out.point_2[i].y * img.rows);
 			cv::Point point3(retinaface_detect_out.point_3[i].x * img.cols, retinaface_detect_out.point_3[i].y * img.rows);
 			cv::Point point4(retinaface_detect_out.point_4[i].x * img.cols, retinaface_detect_out.point_4[i].y * img.rows);
 			cv::Point point5(retinaface_detect_out.point_5[i].x * img.cols, retinaface_detect_out.point_5[i].y * img.rows);
-		
+
 			cv::circle(img, point1, 2, cv::Scalar(255, 0, 0), -1);
 			cv::circle(img, point2, 2, cv::Scalar(0, 255, 0), -1);
 			cv::circle(img, point3, 2, cv::Scalar(0, 0, 255), -1);
@@ -228,7 +242,7 @@ int run_network(void *qcontext) {
 		cv::waitKey(1);
 	}
 
-    return ret;
+	return ret;
 }
 
 int destroy_network(void *qcontext) {
@@ -248,7 +262,7 @@ int main(int argc,char **argv)
 	input_high = MODEL_HEIGHT;
 	input_channel = 3;
 
-	while ((c = getopt_long(argc, argv, "d:m:w:h:H", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "d:m:w:h:t:H", longopts, NULL)) != -1) {
 		switch (c) {
 			case 'd':
 				device = atoi(optarg);
@@ -266,8 +280,12 @@ int main(int argc,char **argv)
 				model_path = optarg;
 				break;
 
+			case 't':
+				device_type = optarg;
+				break;
+
 			default:
-				printf("%s [-d device] [-m model path] [-w camera width] [-h camera height]  [-H]\n", argv[0]);
+				printf("%s [-d device] [-m model path] [-w camera width] [-h camera height] [-t device type] [-H]\n", argv[0]);
 				exit(1);
 		}
 	}

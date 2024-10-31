@@ -9,9 +9,17 @@ $ make
 
 # Run
 
+## MIPI Camera
+
 ```shell
 $ cd build
-$ sudo ./retinaface_cap -m ../data/retinaface_int8.adla -d 0 -w 1920 -h 1080
+$ sudo ./retinaface_cap -m ../data/retinaface_int8.adla -t mipi -w 1920 -h 1080
 ```
 
-**x**: the number for you camera device. such as `/dev/video0`, `x` is `0`.
+## USB Camera
+```shell
+$ cd build
+$ sudo ./retinaface_cap -m ../data/retinaface_int8.adla -t usb -w 1920 -h 1080 -d 0
+```
+
+**TIP**: Replace 0 as the number for your camera device. Such as `/dev/video5`, it should be `-d 5`.
