@@ -5,8 +5,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,--allow-shlib-undefined")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wl,--allow-shlib-undefined")
 
 PROJECT(AML_NN_SDK)
-SET(INCLUDE_PATH ../nn_sdk)
-include_directories(${INCLUDE_PATH}/include ./include)
+include_directories(./ ./include)
 
 # opencv
 set(OPENCV_API_PATRH /usr/include/opencv4/)
@@ -17,12 +16,12 @@ find_package(OpenCV REQUIRED)
 
 SET(CMAKE_C_COMPILER aarch64-linux-gnu-gcc)
 SET(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++)
-SET(LINK_DIR ../nn_sdk/lib/lib64  ./)
+SET(LINK_DIR /usr/lib/aarch64-linux-gnu/  ./)
 
 link_directories(${LINK_DIR})
 aux_source_directory(. SRC_LIST)
 link_libraries(nnsdk libjpeg.a )
 
-ADD_EXECUTABLE(retinaface_cap ${SRC_LIST})
-target_link_libraries(retinaface_cap -lpthread -lm -ldl ${OpenCV_LIBS})
+ADD_EXECUTABLE(retinaface ${SRC_LIST})
+target_link_libraries(retinaface -lpthread -lm -ldl ${OpenCV_LIBS})
 
