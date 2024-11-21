@@ -178,6 +178,10 @@ int run_network(void *qcontext) {
 			return -1;
 		}
 
+		if (cv::getWindowProperty("Image Window", cv::WND_PROP_VISIBLE) < 1) {
+			break;
+		}
+
 		face_detect_out_t retinaface_detect_out;
 		outdata = (nn_output*)aml_module_output_get(qcontext, outconfig);
 		if (outdata == NULL) {
