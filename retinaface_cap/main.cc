@@ -243,6 +243,7 @@ int run_network(void *qcontext) {
 			cv::rectangle(img, rect1, obj_id_to_color(classid), -1);
 			cv::putText(img, names[classid], cvPoint(left+5,top-5), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(0,0,0), 1);
 		}
+		cv::resizeWindow("Image Window", 1920, 1080);
 		cv::imshow("Image Window",img);
 		cv::waitKey(1);
 	}
