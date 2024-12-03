@@ -15,7 +15,7 @@ Before running, please run face_recognition to generate face_feature_lib and cop
 
 ```shell
 # Identification
-$ sudo ./face_recognition -M ../data/model/retinaface_int8.adla -m ../data/model/facenet_int8.adla -d x
+$ ./face_recognition -M ../data/model/retinaface_int8.adla -m ../data/model/facenet_int8.adla -d x
 ```
 
 **x**: the number for you camera device. such as `/dev/video0`, `x` is `0`.

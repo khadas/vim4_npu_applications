@@ -11,7 +11,7 @@ $ make
 
 ```shell
 $ cd build
-$ sudo ./yolov8n_cap -m ../data/yolov8n_int8.adla -d X -w 1920 -h 1080
+$ ./yolov8n_cap -m ../data/yolov8n_int8.adla -d X
 ```
 
 **x**: the number for you camera device. such as `/dev/video0`, `x` is `0`.

@@ -15,6 +15,7 @@
 #include "nn_sdk.h"
 #include "nn_util.h"
 #include "postprocess_util.h"
+#include "nn_demo.h"
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>

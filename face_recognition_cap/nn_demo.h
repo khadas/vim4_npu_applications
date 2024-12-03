@@ -28,6 +28,17 @@ typedef struct __nn_obj_detect
 	detBox *pBox;
 }obj_detect_out_t;
 
+typedef struct __nn_face_detect
+{
+    unsigned int  detNum;
+    detBox *pBox;
+    point_t *point_1;
+    point_t *point_2;
+    point_t *point_3;
+    point_t *point_4;
+    point_t *point_5;
+}face_detect_out_t;
+
 void activate_array(float *start, int num);
 int entry_index(int lw, int lh, int lclasses, int loutputs, int batch, int location, int entry);
 void softmax(float *input, int n, float temp, float *output);

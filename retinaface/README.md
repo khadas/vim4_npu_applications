@@ -11,5 +11,5 @@ $ make
 
 ```shell
 $ cd build
-$ sudo ./retinaface -p ../data/timg.jpg -m ../data/retinaface_int8.adla
+$ ./retinaface -p ../data/timg.jpg -m ../data/retinaface_int8.adla
 ```

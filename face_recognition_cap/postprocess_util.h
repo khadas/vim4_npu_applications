@@ -2,6 +2,7 @@
 #define _POSTPROCESS_UTIL_H_
 
 #include <opencv2/opencv.hpp>
+#include "nn_demo.h"
 
 void postprocess_retinaface(nn_output *pout, face_detect_out_t* dectout);
 

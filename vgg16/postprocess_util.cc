@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include "nn_util.h"
 #include "nn_sdk.h"
-//#include "nn_demo.h"
+#include "nn_demo.h"
 
 int g_detect_number = 50; //max detect num
 

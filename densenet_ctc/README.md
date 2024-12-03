@@ -11,5 +11,5 @@ $ make
 
 ```shell
 $ cd build
-$ sudo ./densenet_ctc -p ../data/KhadasTeam.png  -m ../data/densenet_ctc_int16.adla
+$ ./densenet_ctc -p ../data/KhadasTeam.png  -m ../data/densenet_ctc_int16.adla
 ```

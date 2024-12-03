@@ -15,6 +15,7 @@
 #include "nn_sdk.h"
 #include "nn_util.h"
 #include "postprocess_util.h"
+#include "nn_demo.h"
 #include "retinaface.h"
 #include "facenet.h"
 #include <opencv2/objdetect/objdetect.hpp>

@@ -11,5 +11,5 @@ $ make
 
 ```shell
 $ cd build
-$ sudo ./yolov8n -p ../data/horses.jpg  -m ../data/yolov8n_int8.adla
+$ ./yolov8n -p ../data/horses.jpg  -m ../data/yolov8n_int8.adla
 ```

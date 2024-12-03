@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include "nn_util.h"
 #include "nn_sdk.h"
-//#include "nn_demo.h"
+#include "nn_demo.h"
 
 int g_detect_number = 50; //max detect num
 
@@ -269,8 +269,6 @@ int yolo_v3_post_process_onescale(float *predictions, int input_size[3], box *bo
 
     for (j = 0; j < modelWidth*modelHeight; ++j)
         probs[j] = (float *)calloc(num_class+1, sizeof(float *));
-    
-    flatten(predictions, modelWidth * modelHeight, bb_size, 1, 1);
 
     for (i = 0; i < modelHeight; ++i)
     {
@@ -364,8 +362,8 @@ void yolov3_postprocess(float **predictions, int width, int height, int modelWid
 void postprocess_yolov3(nn_output *pout, obj_detect_out_t* dectout)
 {
     float *yolov3_buffer[3] = {NULL};
-    yolov3_buffer[0] = (float*)pout->out[0].buf;// 80 80
-    yolov3_buffer[1] = (float*)pout->out[1].buf;// 40 40
+    yolov3_buffer[0] = (float*)pout->out[1].buf;// 80 80
+    yolov3_buffer[1] = (float*)pout->out[0].buf;// 40 40
     yolov3_buffer[2] = (float*)pout->out[2].buf;// 20 20
 
     yolov3_postprocess(yolov3_buffer,640,640,20,20,0,dectout);

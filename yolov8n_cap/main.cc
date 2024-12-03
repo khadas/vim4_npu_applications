@@ -15,6 +15,7 @@
 #include "nn_sdk.h"
 #include "nn_util.h"
 #include "postprocess_util.h"
+#include "nn_demo.h"
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -142,11 +143,11 @@ int run_network(void *qcontext) {
 	int input_size = 0;
 	int hw = input_width*input_high;
 	unsigned char *rawdata = NULL;
-	cv::Mat temp_img(MODEL_WIDTH, MODEL_HEIGHT, CV_8UC1);
+	cv::Mat temp_img(MODEL_WIDTH, MODEL_HEIGHT, CV_8UC1), normalized_img;
 
-	inData.input_type = RGB24_RAW_DATA;
+	inData.input_type = BINARY_RAW_DATA;
 	inData.input_index = 0;
-	inData.size = input_width * input_high * input_channel;
+	inData.size = input_width * input_high * input_channel * sizeof(float);
 
 	cv::VideoCapture cap(device);
 	cap.set(cv::CAP_PROP_FRAME_WIDTH, default_width);
@@ -170,8 +171,9 @@ int run_network(void *qcontext) {
 
 		cv::resize(img, temp_img, cv::Size(MODEL_WIDTH, MODEL_HEIGHT));
 		cv::cvtColor(temp_img, temp_img, cv::COLOR_RGB2BGR);
+		temp_img.convertTo(normalized_img, CV_32FC3, 1.0 / 255.0);
 
-		inData.input = temp_img.data;
+		inData.input = normalized_img.data;
 
 //		gettimeofday(&time_start, 0);
 		ret = aml_module_input_set(qcontext, &inData);

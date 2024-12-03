@@ -21,7 +21,7 @@
 #include "nn_util.h"
 #include "nn_sdk.h"
 #include <opencv2/opencv.hpp>
-//#include "nn_demo.h"
+#include "nn_demo.h"
 
 /** Status enum */
 typedef enum
@@ -226,9 +226,9 @@ void retinaface_postprocess(float **predictions, int width, int height, int mode
 void postprocess_retinaface(nn_output *pout, face_detect_out_t* dectout)
 {
     float *retinaface_buffer[3] = {NULL};
-    retinaface_buffer[0] = (float*)pout->out[0].buf;
-    retinaface_buffer[1] = (float*)pout->out[1].buf;
-    retinaface_buffer[2] = (float*)pout->out[2].buf;
+    retinaface_buffer[0] = (float*)pout->out[1].buf; // 8
+    retinaface_buffer[1] = (float*)pout->out[0].buf; // 4
+    retinaface_buffer[2] = (float*)pout->out[2].buf; // 20
 
     retinaface_postprocess(retinaface_buffer,640,640,20,20,0,dectout);
 }

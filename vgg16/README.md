@@ -11,5 +11,5 @@ $ make
 
 ```shell
 $ cd build
-$ sudo ./vgg16 -p ../data/airplane.jpeg  -m ../data/vgg16_int8.adla
+$ ./vgg16 -p ../data/airplane.jpeg  -m ../data/vgg16_int8.adla
 ```

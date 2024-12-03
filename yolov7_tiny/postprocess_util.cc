@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include "nn_util.h"
 #include "nn_sdk.h"
-//#include "nn_demo.h"
+#include "nn_demo.h"
 
 int g_detect_number = 50; //max detect num
 
@@ -255,14 +255,12 @@ int yolo_v3_post_process_onescale(float *predictions, int input_size[3] , float 
     }
 
     int ck0, batch = 1;
-    flatten(predictions, modelWidth*modelHeight, bb_size*num_box, batch, 1);
-
+    
     for (i = 0; i < modelHeight*modelWidth*num_box; ++i)
     {
+    	int index = bb_size*i;
         for (ck0=coords;ck0<bb_size;ck0++ )
         {
-            int index = bb_size*i;
-
             predictions[index + ck0] = logistic_activate(predictions[index + ck0]);
             if (ck0 == coords)
             {
@@ -281,7 +279,7 @@ int yolo_v3_post_process_onescale(float *predictions, int input_size[3] , float 
         int n =0;
         for (n = 0; n < num_box; ++n)
         {
-            int index = i*num_box + n;
+            int index = n * modelWidth * modelHeight + i;
             int p_index = index * bb_size + 4;
             float scale = predictions[p_index];
             int box_index = index * bb_size;
@@ -373,8 +371,8 @@ void yolov3_postprocess(float **predictions, int width, int height, int modelWid
 void postprocess_yolov3(nn_output *pout, obj_detect_out_t* dectout)
 {
     float *yolov3_buffer[3] = {NULL};
-    yolov3_buffer[0] = (float*)pout->out[0].buf;// 80 80
-    yolov3_buffer[1] = (float*)pout->out[1].buf;// 40 40
+    yolov3_buffer[0] = (float*)pout->out[1].buf;// 80 80
+    yolov3_buffer[1] = (float*)pout->out[0].buf;// 40 40
     yolov3_buffer[2] = (float*)pout->out[2].buf;// 20 20
 
     yolov3_postprocess(yolov3_buffer,640,640,20,20,0,dectout);
