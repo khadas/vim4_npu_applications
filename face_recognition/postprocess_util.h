@@ -3,6 +3,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#include "nn_demo.h"
+
 void postprocess_retinaface(nn_output *pout, face_detect_out_t* dectout);
 
 cv::Mat similarTransform(cv::Mat src,cv::Mat dst);

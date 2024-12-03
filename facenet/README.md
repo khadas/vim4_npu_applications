@@ -11,8 +11,8 @@ $ make
 
 ```shell
 # Generate feature library
-$ sudo ./facenet -p 1  -m ../data/model/facenet_int8.adla
+$ ./facenet -p 1  -m ../data/model/facenet_int8.adla
 
 # Identification
-$ sudo ./facenet -p ../data/img/lin_1.jpg  -m ../data/model/facenet_int8.adla
+$ ./facenet -p ../data/img/lin_1.jpg  -m ../data/model/facenet_int8.adla
 ```

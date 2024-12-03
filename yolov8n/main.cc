@@ -15,6 +15,7 @@
 #include "nn_sdk.h"
 #include "nn_util.h"
 #include "postprocess_util.h"
+#include "nn_demo.h"
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -100,6 +101,7 @@ int set_input(void *qcontext, const char *jpath) {
 	temp_img.convertTo(normalized_img, CV_32FC3, 1.0 / 255.0);
 
 	rawdata = normalized_img.data;
+	
 	inData.input_type = BINARY_RAW_DATA;
 	inData.input = rawdata;
 	inData.input_index = 0;
@@ -128,7 +130,7 @@ int run_network(void *qcontext) {
 
 	outconfig.format = AML_OUTDATA_FLOAT32;//AML_OUTDATA_RAW or AML_OUTDATA_FLOAT32
 	outconfig.typeSize = sizeof(aml_output_config_t);
-	outconfig.order = AML_OUTPUT_ORDER_NCHW;
+	//outconfig.order = AML_OUTPUT_ORDER_NCHW;
 
 	obj_detect_out_t yolov3_detect_out;
 	outdata = (nn_output*)aml_module_output_get(qcontext, outconfig);
@@ -136,7 +138,6 @@ int run_network(void *qcontext) {
 		printf("aml_module_output_get error\n");
 		return -1;
 	}
-
 	
 	postprocess_yolov3(outdata, &yolov3_detect_out);
 
