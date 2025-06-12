@@ -13,7 +13,7 @@ $ make
 
 ```shell
 $ cd build
-$ ./retinaface_cap -m ../data/retinaface_int8.adla -t mipi -w 1920 -h 1080
+$ ./retinaface_cap -m ../data/retinaface_int8.adla -t mipi -w 1920 -h 1080 -d 63
 ```
 
 ## USB Camera
