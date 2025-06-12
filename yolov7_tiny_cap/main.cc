@@ -15,6 +15,7 @@
 #include "nn_sdk.h"
 #include "nn_util.h"
 #include "postprocess_util.h"
+#include "camera_util.h"
 #include "nn_demo.h"
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -42,11 +43,14 @@ struct option longopts[] = {
 	{ "model",          required_argument,  NULL,   'm' },
 	{ "width",          required_argument,  NULL,   'w' },
 	{ "height",         required_argument,  NULL,   'h' },
+	{ "type",           required_argument,  NULL,   't' },
 	{ "help",           no_argument,        NULL,   'H' },
 	{ 0, 0, 0, 0 }
 };
 
 int device = 0;
+
+std::string type;
 
 nn_input inData;
 
@@ -120,8 +124,6 @@ int run_network(void *qcontext) {
 	aml_output_config_t outconfig;
 	memset(&outconfig, 0, sizeof(aml_output_config_t));
 
-//	ret = set_input(context, input_data);
-
 	outconfig.format = AML_OUTDATA_FLOAT32;//AML_OUTDATA_RAW or AML_OUTDATA_FLOAT32
 	outconfig.typeSize = sizeof(aml_output_config_t);
 	outconfig.order = AML_OUTPUT_ORDER_NCHW;
@@ -139,7 +141,6 @@ int run_network(void *qcontext) {
 
 	cv::namedWindow("Image Window");
 
-
 	int input_size = 0;
 	int hw = input_width*input_high;
 	unsigned char *rawdata = NULL;
@@ -149,33 +150,34 @@ int run_network(void *qcontext) {
 	inData.input_index = 0;
 	inData.size = input_width * input_high * input_channel * sizeof(float);
 
-	cv::VideoCapture cap(device);
-	cap.set(cv::CAP_PROP_FRAME_WIDTH, default_width);
-	cap.set(cv::CAP_PROP_FRAME_HEIGHT, default_height);
-
-	gettimeofday(&time_start, 0);
-
-	if (!cap.isOpened()) {
-		std::cout << "capture device failed to open!" << std::endl;
-		cap.release();
-		exit(-1);
+	std::string device_number = std::to_string(device);
+	if (type == "usb") {
+		ret = load_usb_camera(device_number, default_width, default_height);
 	}
-
+	else if (type == "mipi") {
+		//ret = load_mipi_camera(device_number, default_width, default_height);
+		printf("V4L2 unsupports MIPI Camera now. If you want to use, you can use OpenCV call MIPI.\n");
+		return -1;
+	}
+	else {
+		printf("Unsupport camera type : %s\n", type.c_str());
+		return -1;
+	}
+	
 	while(1) {
-
 		gettimeofday(&time_start, 0);
-		if (!cap.read(img)) {
-			std::cout<<"Capture read error"<<std::endl;
-			break;
+		if (type == "usb") {
+			read_usb_frame(&img);
 		}
+		/*else if (type == "mipi") {
+			read_mipi_frame(&img);
+		}*/
 
 		cv::resize(img, temp_img, cv::Size(MODEL_WIDTH, MODEL_HEIGHT));
-		//cv::cvtColor(temp_img, temp_img, cv::COLOR_RGB2BGR);
 		temp_img.convertTo(normalized_img, CV_32FC3, 1.0 / 255.0);
 
 		inData.input = normalized_img.data;
 
-//		gettimeofday(&time_start, 0);
 		ret = aml_module_input_set(qcontext, &inData);
 
 		if (ret != 0) {
@@ -188,19 +190,9 @@ int run_network(void *qcontext) {
 			printf("aml_module_output_get error\n");
 			return -1;
 		}
-		gettimeofday(&time_end, 0);
-		++frames;
-		total_time += (float)((time_end.tv_sec - time_start.tv_sec) + (time_end.tv_usec - time_start.tv_usec) / 1000.0f / 1000.0f);
-		if (total_time >= 1.0f) {
-			int fps = (int)(frames / total_time);
-			printf("Inference FPS: %i\n", fps);
-			frames = 0;
-			total_time = 0;
-		}
-
 
 		postprocess_yolov3(outdata, &yolov3_detect_out);
-		printf("object_num:%d\n", yolov3_detect_out.detNum);
+		//printf("object_num:%d\n", yolov3_detect_out.detNum);
 
 		for (int i =0;i < yolov3_detect_out.detNum;i++){
 			classid = (int)yolov3_detect_out.pBox[i].objectClass;
@@ -210,7 +202,7 @@ int run_network(void *qcontext) {
 			right = (yolov3_detect_out.pBox[i].x + yolov3_detect_out.pBox[i].w/2.) * img.cols;
 			top   = (yolov3_detect_out.pBox[i].y - yolov3_detect_out.pBox[i].h/2.) * img.rows;
 			bot   = (yolov3_detect_out.pBox[i].y + yolov3_detect_out.pBox[i].h/2.) * img.rows;
-			printf("class:%s,label_num:%d,prob:%f,left:%d,top:%d,right:%d,bot:%d\n",coco_names[classid], classid, prob, left, top, right, bot);
+			//printf("class:%s,label_num:%d,prob:%f,left:%d,top:%d,right:%d,bot:%d\n",coco_names[classid], classid, prob, left, top, right, bot);
 
 			pt1=cv::Point(left, top);
 			pt2=cv::Point(right, bot);
@@ -224,7 +216,24 @@ int run_network(void *qcontext) {
 		}
 		cv::imshow("Image Window",img);
 		cv::waitKey(1);
+		
+		gettimeofday(&time_end, 0);
+		++frames;
+		total_time += (float)((time_end.tv_sec - time_start.tv_sec) + (time_end.tv_usec - time_start.tv_usec) / 1000.0f / 1000.0f);
+		if (total_time >= 1.0f) {
+			int fps = (int)(frames / total_time);
+			printf("Inference FPS: %i\n", fps);
+			printf("Inference FPS: %f\n", total_time / frames);
+			frames = 0;
+			total_time = 0;
+		}
 	}
+	if (type == "usb") {
+		close_usb_camera();
+	}
+	/*else if (type == "mipi") {
+		close_mipi_camera();
+	}*/
 
     return ret;
 }
@@ -245,7 +254,7 @@ int main(int argc,char **argv)
 	input_high = MODEL_HEIGHT;
 	input_channel = 3;
 
-	while ((c = getopt_long(argc, argv, "d:m:w:h:H", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "d:m:w:h:t:H", longopts, NULL)) != -1) {
 		switch (c) {
 			case 'd':
 				device = atoi(optarg);
@@ -263,10 +272,19 @@ int main(int argc,char **argv)
 				model_path = optarg;
 				break;
 
+			case 't':
+				type = optarg;
+				break;
+			
 			default:
-				printf("%s [-d device] [-m model path] [-w camera width] [-h camera height]  [-H]\n", argv[0]);
+				printf("%s [-d device] [-m model path] [-w camera width] [-h camera height] [-t camera type]  [-H]\n", argv[0]);
 				exit(1);
 		}
+	}
+	
+	if (type.empty()) {
+		printf("Please choose camera type -t !!!\n");
+		return -1;
 	}
 
 	context = init_network_file(model_path);

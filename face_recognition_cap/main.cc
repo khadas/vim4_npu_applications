@@ -15,6 +15,7 @@
 #include "nn_sdk.h"
 #include "nn_util.h"
 #include "postprocess_util.h"
+#include "camera_util.h"
 #include "nn_demo.h"
 #include "retinaface.h"
 #include "facenet.h"
@@ -30,6 +31,7 @@
 #include <dirent.h>
 #include <iostream>
 #include <fstream>
+#include <sys/time.h>
 
 #define RETINAFACE_MODEL_WIDTH 640
 #define RETINAFACE_MODEL_HEIGHT 640
@@ -50,12 +52,15 @@ struct option longopts[] = {
 int main(int argc,char **argv)
 {
 	int c;
-	int ret = 0;
+	int ret = 0, frames = 0;
 	int device = 0;
+	std::string type;
 	cv::Mat img;
 	face_detect_out_t retinaface_detect_out;
 	float* facenet_result;
 	float facenet_threshold = 0.6;
+	struct timeval time_start, time_end;
+	float total_time = 0;
 	
 	float dst_landmark[5][2] = {{54.7065, 73.8519},
 				    {105.0454, 73.5734},
@@ -85,7 +90,7 @@ int main(int argc,char **argv)
 	int device_default_width = DEFAULT_WIDTH;
 	int device_default_height = DEFAULT_HEIGHT;
 
-	while ((c = getopt_long(argc, argv, "d:M:m:H", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "d:M:m:t:H", longopts, NULL)) != -1) {
 		switch (c) {
 			case 'd':
 				device = atoi(optarg);
@@ -99,25 +104,38 @@ int main(int argc,char **argv)
 				facenet_model_path = optarg;
 				break;
 
+			case 't':
+				type = optarg;
+				break;
+			
 			default:
-				printf("%s [-d device] [-M retinaface model path] [-m facenet model path]  [-H]\n", argv[0]);
+				printf("%s [-d device] [-M retinaface model path] [-m facenet model path] [-t camera type]  [-H]\n", argv[0]);
 				exit(1);
 		}
+	}
+	
+	if (type.empty()) {
+		printf("Please choose camera type -t !!!\n");
+		return -1;
 	}
 	
 	retinaface_context = init_retinaface_network_file(retinaface_model_path);
 	facenet_context = init_facenet_network_file(facenet_model_path);
   	
-  	cv::VideoCapture cap(device);
-	cap.set(cv::CAP_PROP_FRAME_WIDTH, device_default_width);
-	cap.set(cv::CAP_PROP_FRAME_HEIGHT, device_default_height);
-	
-	if (!cap.isOpened()) {
-		std::cout << "capture device failed to open!" << std::endl;
-		cap.release();
-		exit(-1);
+  	std::string device_number = std::to_string(device);
+	if (type == "usb") {
+		ret = load_usb_camera(device_number, device_default_width, device_default_height);
 	}
-	
+	else if (type == "mipi") {
+		//ret = load_mipi_camera(device_number, device_default_width, device_default_height);
+		printf("V4L2 unsupports MIPI Camera now. If you want to use, you can use OpenCV call MIPI.\n");
+		return -1;
+	}
+	else {
+		printf("Unsupport camera type : %s\n", type.c_str());
+		return -1;
+	}
+
 	int x_padding = 0;
 	int y_padding = 0;
 	if (device_default_width > device_default_height)
@@ -174,10 +192,13 @@ int main(int argc,char **argv)
   	cv::namedWindow("Image Window");
   	
   	while(1) {
-		if (!cap.read(img)) {
-			std::cout<<"Capture read error"<<std::endl;
-			break;
+		gettimeofday(&time_start, 0);
+		if (type == "usb") {
+			read_usb_frame(&img);
 		}
+		/*else if (type == "mipi") {
+			read_mipi_frame(&img);
+		}*/
 	
 		ret = set_retinaface_input(retinaface_context, img, retinaface_input_width, retinaface_input_high, input_channel);
 		ret = run_retinaface_network(retinaface_context, retinaface_detect_out);
@@ -253,7 +274,24 @@ int main(int argc,char **argv)
 		}
 		cv::imshow("Image Window",img);
 		cv::waitKey(1);
+		
+		gettimeofday(&time_end, 0);
+		++frames;
+		total_time += (float)((time_end.tv_sec - time_start.tv_sec) + (time_end.tv_usec - time_start.tv_usec) / 1000.0f / 1000.0f);
+		if (total_time >= 1.0f) {
+			int fps = (int)(frames / total_time);
+			printf("Inference FPS: %i\n", fps);
+			printf("Inference FPS: %f\n", total_time / frames);
+			frames = 0;
+			total_time = 0;
+		}
 	}
+	if (type == "usb") {
+		close_usb_camera();
+	}
+	/*else if (type == "mipi") {
+		close_mipi_camera();
+	}*/
 	
 	ret = destroy_retinaface_network(retinaface_context);
 	ret = destroy_facenet_network(facenet_context);
